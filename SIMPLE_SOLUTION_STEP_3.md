@@ -1,0 +1,5 @@
+After are satisfied with the way we extract the data in the <conference-short-name>.jsonl file in the data/output/ folder, we can try to use the previously extracted URLs to crawl additional content. 
+
+For an initial PoC version, lets create a new folder called step3/ use our favourite harness again to create a python script which uses the previously generated jsonl file, crawls the content from the URLs, prepares them in a format sutiable to be used again by qwen3.5:4b-mlx without thinking (assuming again you have Ollama with that model running in the background) and prompts the model to derive relevant topics.
+
+For better results, a bigger LLM should work better, but to save some tokens, lets go with this. The result should be a new attribute called "topcis" that contains the list of topics extracted from the crawled content.
