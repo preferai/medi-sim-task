@@ -5,7 +5,7 @@ Crawls each programme page in `data/source.csv` with Crawl4AI, extracts papers w
 ## Prerequisites
 
 - [`uv`](https://docs.astral.sh/uv/)
-- Ollama running locally with `gemma4:12b-mlx` pulled
+- Ollama running locally with `qwen3.5:4b-mlx` pulled
 - One-time browser setup: `uv run crawl4ai-setup`
 
 The project environment (`pyproject.toml`, `uv.lock`, `.venv`, `.env`) lives in the repo root `ecc1/` and is shared by all steps.
@@ -20,7 +20,7 @@ uv run python step1/scrape.py                  # all rows in data/source.csv
 uv run python step1/verify.py eacr-2026        # compare output with ground truth
 ```
 
-Settings come from `ecc1/.env` (`SCRAPE_MODEL`, default `gemma4:12b-mlx`; `OLLAMA_URL`, default `http://localhost:11434/v1`; `CHUNK_CHARS`, default `3000`). Precedence: `--model` flag, shell environment, `.env`, default. The startup log shows what was loaded and used.
+Settings come from `ecc1/.env` (`SCRAPE_MODEL`, set to `qwen3.5:4b-mlx`, code default `gemma4:12b-mlx`; `OLLAMA_URL`, default `http://localhost:11434/v1`; `CHUNK_CHARS`, default `3000`). Precedence: `--model` flag, shell environment, `.env`, default. The startup log shows what was loaded and used.
 
 ## Data
 
@@ -34,6 +34,7 @@ Non-paper talks (keynotes, invited and industry talks) go in the same file; they
 
 ## Notes
 
+- Model: `gemma4:12b-mlx` was tested first; `qwen3.5:4b-mlx` produced the final output because it is faster.
 - The programme page has no abstract links, so `abstract_url` is derived from `paper_id` (EACR URL pattern, see `extract.py`); talks without a `paper_id` keep `null`. `extra_url` is not on the page and stays `null`.
 - Page content is split into ~6000-character chunks and results are merged; duplicates (same title and author) are collapsed.
 - Only the programme page is fetched, not abstract pages or PDFs.

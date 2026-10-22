@@ -228,3 +228,4 @@ __marimo__/
 
 # Claude Code (personal)
 .claude/statusline-command.sh
+.playwright-mcp/

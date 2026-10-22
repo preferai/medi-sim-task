@@ -1,0 +1,1178 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#15191b">
+  <title>Three papers before a pipeline</title>
+  <style>
+    :root {
+      --bg: #15191b;
+      --ink: #f4f6f5;
+      --muted: #9aa5a2;
+      --line: rgba(255, 255, 255, .14);
+      --accent: #3ccfb0;
+      --mark: #26a98e;
+      --warn: #f08a6a;
+      --neutral: #4b5457;
+      --c1: #3987e5;
+      --c2: #d95926;
+      --c3: #26a98e;
+      --c4: #9085e9;
+      --page-edge: clamp(24px, 5vw, 88px);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { width: 100%; height: 100%; margin: 0; }
+
+    body {
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    button { font: inherit; }
+
+    .deck {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      height: 100svh;
+      overflow: hidden;
+      isolation: isolate;
+      background:
+        radial-gradient(circle at 78% 48%, rgba(60, 207, 176, .09), transparent 34%),
+        radial-gradient(circle at 4% 96%, rgba(240, 138, 106, .05), transparent 30%),
+        var(--bg);
+    }
+
+    .deck::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: min(45vw, 700px);
+      aspect-ratio: 1;
+      right: -21vw;
+      top: -22vw;
+      border: clamp(42px, 7vw, 110px) solid rgba(60, 207, 176, .06);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .deck-header {
+      position: absolute;
+      z-index: 10;
+      top: clamp(22px, 4vh, 44px);
+      left: var(--page-edge);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    /* Slides */
+
+    .slide {
+      position: absolute;
+      inset: 105px var(--page-edge) 82px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: safe center;
+      gap: clamp(28px, 4vw, 72px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateX(3vw);
+      transition: opacity 280ms ease, transform 420ms ease, visibility 0s linear 420ms;
+    }
+
+    .slide.is-active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateX(0);
+      transition-delay: 0s;
+    }
+
+    .slide--wide {
+      grid-template-columns: minmax(0, 1fr);
+      align-content: safe center;
+      gap: clamp(20px, 3vh, 36px);
+    }
+
+    .accent-rule {
+      display: block;
+      width: 64px;
+      height: 6px;
+      margin-bottom: clamp(20px, 3.5vh, 36px);
+      border-radius: 99px;
+      background: var(--accent);
+    }
+
+    .eyebrow {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: .04em;
+    }
+
+    .eyebrow strong { color: var(--accent); font-weight: 500; }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(46px, 5.6vw, 100px);
+      font-weight: 400;
+      letter-spacing: -.055em;
+      line-height: .98;
+    }
+
+    h1 span { display: block; }
+    h1 span:last-child { color: var(--accent); }
+
+    .slide h1 { font-size: clamp(40px, 4.6vw, 80px); }
+    .slide--wide h1 { font-size: clamp(34px, 3.6vw, 60px); letter-spacing: -.045em; line-height: 1.05; }
+    .slide--wide h1 span { display: inline; }
+
+    .lead {
+      max-width: 540px;
+      margin: 24px 0 0;
+      color: var(--muted);
+      font-size: clamp(17px, 1.4vw, 21px);
+      line-height: 1.45;
+    }
+
+    .slide--wide .lead { max-width: 980px; margin-top: 12px; }
+
+    .lead strong, .note strong { color: var(--ink); font-weight: 500; }
+
+    .note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .takeaway {
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .takeaway p {
+      margin: 0;
+      font-size: clamp(17px, 1.5vw, 23px);
+      letter-spacing: -.02em;
+      line-height: 1.35;
+    }
+
+    .takeaway strong { color: var(--accent); font-weight: 500; }
+    .takeaway .note { margin-top: 8px; font-size: 13px; letter-spacing: 0; }
+
+    .card {
+      padding: clamp(14px, 1.3vw, 22px);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(145deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .02));
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .card p { margin: 0; font-size: clamp(15px, 1.15vw, 18px); line-height: 1.4; }
+    .card p + p { margin-top: 8px; }
+    .card .note { margin-top: 10px; }
+
+    .grid { display: grid; gap: 14px; }
+    .grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid--wide-left { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: clamp(24px, 3vw, 48px); align-items: start; }
+
+    .stack { display: grid; gap: 12px; align-content: start; }
+
+    code, .record {
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+    }
+
+    code {
+      padding: 1px 6px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, .08);
+      font-size: .86em;
+    }
+
+    .record {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .record b { color: var(--ink); font-weight: 400; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .chip {
+      padding: 6px 12px;
+      border: 1px solid var(--line);
+      border-radius: 99px;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    .chip--found { border-color: var(--mark); color: var(--accent); }
+    .chip--missing { color: var(--muted); border-style: dashed; }
+    .chip--warn { border-color: var(--warn); color: var(--warn); }
+    .chip--mono { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13px; }
+
+    .step-ref { display: block; margin-top: 12px; color: var(--muted); font-size: 13px; }
+
+    /* Stats */
+
+    .stat-question { margin: 0 0 14px; color: var(--muted); font-size: clamp(15px, 1.25vw, 19px); line-height: 1.35; }
+
+    .stat-value {
+      margin: 0;
+      color: var(--accent);
+      font-size: clamp(50px, 5.8vw, 100px);
+      letter-spacing: -.065em;
+      line-height: 1;
+    }
+
+    .stat-caption { margin: 12px 0 0; font-size: clamp(14px, 1.15vw, 17px); line-height: 1.4; }
+
+    .mini-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 28px; }
+    .mini-stats .stat-value { font-size: clamp(34px, 3.4vw, 56px); }
+    .mini-stats .stat-caption { margin-top: 8px; color: var(--muted); font-size: 13px; }
+
+    /* Charts */
+
+    .chart { margin: 0; }
+
+    .chart figcaption {
+      margin-bottom: 14px;
+      font-size: clamp(15px, 1.2vw, 19px);
+      font-weight: 500;
+    }
+
+    .chart figcaption small { margin-left: 6px; color: var(--muted); font-size: 13px; font-weight: 400; }
+
+    .bars { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+
+    .bar {
+      display: grid;
+      grid-template-columns: 120px minmax(0, 1fr);
+      align-items: center;
+      gap: 14px;
+      outline: none;
+    }
+
+    .bar-label { color: var(--muted); font-size: 14px; text-align: right; }
+
+    .bar-track { position: relative; display: flex; align-items: center; gap: 10px; min-height: 26px; }
+
+    .bar-fill {
+      height: 22px;
+      flex: 0 0 auto;
+      width: calc(var(--value) * (100% - 120px));
+      border-radius: 0 4px 4px 0;
+      background: var(--mark);
+      transition: filter 120ms ease;
+    }
+
+    .bar-value { flex: 0 0 auto; font-size: 14px; white-space: nowrap; }
+    .bar-value small { color: var(--muted); font-size: 12px; }
+
+    .bar--muted .bar-fill { background: var(--neutral); }
+
+    .bar:hover .bar-fill, .bar:focus-visible .bar-fill { filter: brightness(1.25); }
+    .bar:hover .bar-label, .bar:focus-visible .bar-label { color: var(--ink); }
+
+    .bars--compact { gap: 3px; }
+    .bars--compact .bar-track { min-height: 20px; }
+    .bars--compact .bar-fill { height: 15px; }
+    .bars--compact .bar-label, .bars--compact .bar-value { font-size: 13px; }
+
+    .bars-axis {
+      display: grid;
+      grid-template-columns: 120px minmax(0, 1fr);
+      gap: 14px;
+      margin-top: 6px;
+    }
+
+    .bars-axis span:last-child {
+      padding-top: 6px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .stacked { display: flex; gap: 2px; min-height: 26px; }
+
+    .seg {
+      display: grid;
+      place-items: center;
+      flex: var(--n) 1 0;
+      min-width: 0;
+      height: 22px;
+      color: var(--bg);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      outline: none;
+    }
+
+    .seg:last-child { border-radius: 0 4px 4px 0; }
+    .seg:hover, .seg:focus-visible { filter: brightness(1.2); }
+
+    .seg--correct, .key--correct { background: var(--c3); }
+    .seg--null, .key--null { background: var(--neutral); color: var(--ink); }
+    .seg--incorrect, .key--incorrect { background: var(--c4); }
+    .seg--missing, .key--missing { background: var(--c2); }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 14px; padding: 0; list-style: none; color: var(--muted); font-size: 13px; }
+    .legend li { display: flex; align-items: center; gap: 7px; }
+    .key { width: 12px; height: 12px; border-radius: 3px; }
+    .legend svg { width: 13px; height: 13px; overflow: visible; }
+
+    .scatter { display: block; width: 100%; height: auto; max-height: 34vh; }
+    .scatter .axis { stroke: var(--line); }
+    .scatter .axis-label { fill: var(--muted); font-size: 12px; }
+    .scatter [data-tip] { stroke: var(--bg); stroke-width: 1.5; cursor: default; outline: none; }
+    .scatter [data-tip]:hover, .scatter [data-tip]:focus-visible { stroke: var(--ink); }
+
+    .heat { display: grid; grid-template-columns: auto repeat(8, minmax(0, min(34px, 3.6vh))); gap: 2px; align-items: center; }
+    .heat-label { padding-right: 8px; color: var(--muted); font-size: 13px; text-align: right; }
+    .heat-col { justify-self: center; padding-top: 6px; color: var(--muted); font-size: 12px; writing-mode: vertical-rl; transform: rotate(180deg); }
+
+    .heat-cell {
+      display: grid;
+      place-items: center;
+      aspect-ratio: 1;
+      border-radius: 4px;
+      background: color-mix(in oklab, var(--mark) calc(var(--v) * 100%), #222a2c);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      outline: none;
+    }
+
+    .heat-cell.is-dark { color: var(--bg); }
+    .heat-cell:hover, .heat-cell:focus-visible { box-shadow: 0 0 0 2px var(--ink); }
+
+    .tip {
+      position: fixed;
+      z-index: 20;
+      max-width: 340px;
+      padding: 8px 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #232a2c;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.4;
+      pointer-events: none;
+    }
+
+    /* Routing dial */
+
+    .dial {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 2px;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .dial div { padding: 16px 20px; background: rgba(255, 255, 255, .05); }
+    .dial div:first-child { background: rgba(38, 169, 142, .32); }
+    .dial div:nth-child(2) { background: rgba(38, 169, 142, .16); }
+    .dial strong { display: block; margin-bottom: 6px; font-size: clamp(16px, 1.35vw, 20px); font-weight: 500; }
+    .dial span { color: var(--muted); font-size: 14px; }
+
+    /* Flow */
+
+    .flow { display: grid; grid-template-columns: repeat(var(--steps), minmax(0, 1fr)); gap: 26px; }
+
+    .flow .card { position: relative; }
+
+    .flow .card:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: -20px;
+      width: 12px;
+      height: 12px;
+      border-top: 2px solid var(--accent);
+      border-right: 2px solid var(--accent);
+      transform: translateY(-50%) rotate(45deg);
+    }
+
+    .flow .card p { font-size: clamp(14px, 1.05vw, 16px); }
+    .flow .card p + p { color: var(--muted); }
+
+    .monitor { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+    .monitor div { padding-top: 12px; border-top: 2px solid var(--mark); font-size: clamp(14px, 1.05vw, 16px); line-height: 1.35; }
+    .monitor small { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .monitor .formula { display: block; margin-top: 10px; color: var(--accent); font-family: "Times New Roman", Times, serif; font-size: clamp(16px, 1.25vw, 19px); white-space: nowrap; }
+    .monitor sub { font-size: .7em; }
+
+    /* Footer */
+
+    .deck-footer {
+      position: absolute;
+      z-index: 10;
+      right: var(--page-edge);
+      bottom: clamp(19px, 3vh, 34px);
+      left: var(--page-edge);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .slide-position {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: .12em;
+    }
+
+    .position-bars { display: flex; gap: 6px; }
+
+    .position-bars span {
+      width: 28px;
+      height: 3px;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, .22);
+    }
+
+    .position-bars span.is-active { background: var(--accent); }
+
+    .slide-nav { display: flex; gap: 9px; }
+
+    .slide-nav button {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, .30);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .035);
+      color: var(--ink);
+      cursor: pointer;
+      transition: background 160ms ease, border-color 160ms ease, opacity 160ms ease;
+    }
+
+    .slide-nav button:not(:disabled):hover { border-color: var(--mark); background: var(--mark); }
+    .slide-nav button:disabled { cursor: default; opacity: .28; }
+    .slide-nav button:focus-visible { outline: 3px solid var(--warn); outline-offset: 4px; }
+
+    .slide-nav svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.8;
+    }
+
+    @media (max-width: 1100px) {
+      .flow, .monitor { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .flow .card::after { display: none; }
+      .grid--wide-left { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 760px) {
+      :root { --page-edge: clamp(18px, 6vw, 28px); }
+
+      .deck-header { top: 20px; font-size: 11px; }
+      .slide { inset: 64px var(--page-edge) 74px; grid-template-columns: 1fr; align-content: start; gap: 22px; }
+      .accent-rule { display: none; }
+      .slide h1 { font-size: clamp(34px, 9vw, 50px); }
+      .slide--wide h1 { font-size: clamp(28px, 7vw, 40px); }
+      .grid--2, .grid--3, .flow, .monitor, .dial, .mini-stats { grid-template-columns: 1fr; }
+      .bar, .bars-axis { grid-template-columns: 92px minmax(0, 1fr); }
+      .deck-footer { bottom: 15px; }
+      .slide-position { gap: 10px; }
+      .position-bars { gap: 3px; }
+      .position-bars span { width: 10px; }
+      .slide-nav button { width: 42px; height: 42px; }
+    }
+
+    @media (max-height: 880px) and (min-width: 761px) {
+      .deck-header { top: 16px; }
+      .slide { inset-block: 56px 66px; }
+      .slide--wide { gap: 16px; }
+      .accent-rule { margin-bottom: 16px; }
+      .card { padding: 12px; }
+      .deck-footer { bottom: 12px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .slide, .slide-nav button, .bar-fill { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" aria-label="Content classification proof of concept">
+    <header class="deck-header">Content classification PoC</header>
+
+    <section class="slide slide--wide" id="task" aria-labelledby="task-title">
+      <div>
+        <span class="accent-rule" aria-hidden="true"></span>
+        <p class="eyebrow">Engineering Case Challenge 1</p>
+        <h1 id="task-title"><span>Classify a large volume of new medical content</span> <span>automatically.</span></h1>
+        <p class="lead">Content from conferences, institutions and KOLs keeps growing. Its metadata is <strong>inconsistent and fixed by hand</strong>, which hurts search, recommendations and user trust. The ask: build a classification pipeline with Generative AI.</p>
+      </div>
+      <div class="chips" aria-label="Metadata fields to classify">
+        <span class="chip chip--found">Title</span>
+        <span class="chip chip--found">Specialty</span>
+        <span class="chip chip--found">Sub-specialty</span>
+        <span class="chip chip--found">Drug mentions</span>
+        <span class="chip chip--found">KOL affiliation</span>
+      </div>
+      <div class="grid grid--3">
+        <article class="card">
+          <h2>Technical architecture</h2>
+          <p>Ingestion, preprocessing, AI inference, human-in-the-loop validation, structured metadata storage.</p>
+          <span class="step-ref">Steps 1, 3 and 6</span>
+        </article>
+        <article class="card">
+          <h2>Evaluation and monitoring</h2>
+          <p>Precision and recall, taxonomy coverage, hallucination rate, performance over time.</p>
+          <span class="step-ref">Steps 2 and 4</span>
+        </article>
+        <article class="card">
+          <h2>Business communication</h2>
+          <p>Trade-offs between accuracy, cost and turnaround, and the value for non-technical stakeholders.</p>
+          <span class="step-ref">Step 5</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="slide" id="step-1-source" aria-labelledby="source-title">
+      <div>
+        <span class="accent-rule" aria-hidden="true"></span>
+        <p class="eyebrow"><strong>Step 1</strong> &middot; Source and first ground truth</p>
+        <h1 id="source-title"><span>Before any code:</span><span>how will I know it works?</span></h1>
+        <p class="lead">New to the health domain, I picked the <strong>European Association for Cancer Research 2026</strong> programme as a source, to be confirmed with domain experts. Then I picked three random talks and looked them up by hand. This small set is the first ground truth.</p>
+      </div>
+      <div class="stack">
+        <article class="card">
+          <h2>EACR26-1448 &middot; Barts Cancer Institute</h2>
+          <p>Stromal &beta;3-integrin signature predicting recurrence in Oncotype DX low-risk breast cancer</p>
+          <div class="chips" style="margin-top: 12px"><span class="chip chip--found">Abstract</span><span class="chip chip--found">bioRxiv PDF</span></div>
+        </article>
+        <article class="card">
+          <h2>EACR26-0547 &middot; Queen's University Belfast</h2>
+          <p>Intestinal zonation constrains driver mutation selection and shapes tumour evolution in colorectal cancer</p>
+          <div class="chips" style="margin-top: 12px"><span class="chip chip--found">Abstract</span><span class="chip chip--missing">No PDF</span></div>
+        </article>
+        <article class="card">
+          <h2>Industry talk &middot; OncoHost</h2>
+          <p>Plasma Proteomics and AI: Redefining Precision Oncology</p>
+          <div class="chips" style="margin-top: 12px"><span class="chip chip--missing">No ID</span><span class="chip chip--missing">No abstract</span><span class="chip chip--found">Video stream</span></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="slide slide--wide" id="step-1-extract" aria-labelledby="extract-title">
+      <div>
+        <span class="accent-rule" aria-hidden="true"></span>
+        <p class="eyebrow"><strong>Step 1</strong> &middot; First extraction script</p>
+        <h1 id="extract-title"><span>One CSV in,</span> <span>one JSONL out.</span></h1>
+        <p class="lead">Built with <strong>Spec-Driven Prompting</strong>: a PRD and a spec first, then the code generated from them.</p>
+      </div>
+      <div class="flow" style="--steps: 4" role="list" aria-label="Step 1 extraction flow">
+        <article class="card" role="listitem"><h2>Sources</h2><p>Conference programme URLs</p><p><code>data/source.csv</code></p></article>
+        <article class="card" role="listitem"><h2>Crawl</h2><p>Fetch the programme page as text</p><p>Crawl4AI</p></article>
+        <article class="card" role="listitem"><h2>Extract</h2><p>A small local model fills a fixed schema per talk</p><p>PydanticAI, Ollama, qwen3.5 4B</p></article>
+        <article class="card" role="listitem"><h2>Output</h2><p>One record per talk</p><p><code>data/output/&lt;conference&gt;.jsonl</code></p></article>
+      </div>
+      <div class="grid grid--2">
+        <article class="card">
+          <h2>One extracted record</h2>
+<pre class="record">{"title": <b>"Stromal β3-integrin signature predicting recurrence in Oncotype DX low-risk breast cancer"</b>,
+ "paper_id": <b>"EACR26-1448"</b>, "author": <b>"Alex Jordan"</b>,
+ "affiliation": <b>"Barts Cancer Institute"</b>, "country": <b>"United Kingdom"</b>,
+ "abstract_url": <b>".../abstract/2026/EACR26-1448.htm"</b>,
+ "extra_url": <b>null</b>, "category": <b>"research_paper"</b>}</pre>
+        </article>
+        <div class="takeaway">
+          <p>Switching the model's thinking off cut one chunk from <strong>about 62 s to 1.7 s</strong>.</p>
+          <p class="note">gemma4 12B was tested first; qwen3.5 4B won on speed. Timing measured on a single 1,000-character chunk, output quality in this mode is unchecked.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="step-2-judge" aria-labelledby="judge-title">
+      <div>
+        <span class="accent-rule" aria-hidden="true"></span>
+        <p class="eyebrow"><strong>Step 2</strong> &middot; LLM-as-a-judge</p>
+        <h1 id="judge-title"><span>38 talks extracted,</span><span>none invented.</span></h1>
+        <p class="lead">A bigger model compares the output with the programme page and scores every talk and field. This is the loop for iterating on Step 1: change the model or prompt, judge again.</p>
+        <div class="mini-stats">
+          <div><p class="stat-value">0.895</p><p class="stat-caption">Talk precision: 34 of 38 extracted are real talks</p></div>
+          <div><p class="stat-value">0.895</p><p class="stat-caption">Talk recall: 34 of 38 expected talks found</p></div>
+          <div><p class="stat-value">0</p><p class="stat-caption">Fabricated talks</p></div>
+        </div>
+      </div>
+      <figure class="chart">
+        <figcaption>F1 per field <small>34 matched talks, macro F1 0.867</small></figcaption>
+        <ul class="bars" aria-label="F1 per field">
+          <li class="bar" tabindex="0" style="--value: 1" data-tip="paper_id: 7 correct, 27 correctly empty. F1 1.000"><span class="bar-label">paper_id</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value">1.000</span></span></li>
+          <li class="bar" tabindex="0" style="--value: 1" data-tip="abstract_url: 7 correct, 27 correctly empty. F1 1.000"><span class="bar-label">abstract_url</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value">1.000</span></span></li>
+          <li class="bar" tabindex="0" style="--value: .935" data-tip="country: 29 correct, 4 missing. Precision 1.000, recall 0.879"><span class="bar-label">country</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value">0.935</span></span></li>
+          <li class="bar" tabindex="0" style="--value: .824" data-tip="title: 28 correct, 6 incorrect"><span class="bar-label">title</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value">0.824</span></span></li>
+          <li class="bar" tabindex="0" style="--value: .824" data-tip="category: 28 correct, 6 incorrect"><span class="bar-label">category</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value">0.824</span></span></li>
+          <li class="bar" tabindex="0" style="--value: .781" data-tip="affiliation: 25 correct, 5 incorrect, 4 missing. Precision 0.833, recall 0.735"><span class="bar-label">affiliation</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value">0.781</span></span></li>
+          <li class="bar" tabindex="0" style="--value: .706" data-tip="author: 24 correct, 10 incorrect"><span class="bar-label">author</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value">0.706</span></span></li>
+          <li class="bar bar--muted" tabindex="0" style="--value: 0" data-tip="extra_url: no PDF links on the page, all 34 correctly empty. Excluded from macro F1"><span class="bar-label">extra_url</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value"><small>n/a, no PDF links on page</small></span></span></li>
+        </ul>
+        <div class="bars-axis" aria-hidden="true"><span></span><span>F1, scale 0 to 1. Macro F1 excludes extra_url</span></div>
+      </figure>
+    </section>
+
+    <section class="slide slide--wide" id="step-2-errors" aria-labelledby="errors-title">
+      <div>
+        <span class="accent-rule" aria-hidden="true"></span>
+        <p class="eyebrow"><strong>Step 2</strong> &middot; What the errors look like</p>
+        <h1 id="errors-title"><span>Errors are mostly wrong values and</span> <span>not invented ones.</span></h1>
+      </div>
+      <div class="grid grid--wide-left">
+        <figure class="chart">
+          <figcaption>Judge verdicts per field <small>34 matched talks, hallucinated values: 0 in every field</small></figcaption>
+          <ul class="legend" aria-hidden="true">
+            <li><span class="key key--correct"></span>correct</li>
+            <li><span class="key key--null"></span>correctly empty</li>
+            <li><span class="key key--incorrect"></span>incorrect</li>
+            <li><span class="key key--missing"></span>missing</li>
+          </ul>
+          <ul class="bars" id="verdicts" aria-label="Judge verdicts per field"></ul>
+          <div class="bars-axis" aria-hidden="true"><span></span><span>talks, scale 0 to 34</span></div>
+        </figure>
+        <div class="stack">
+          <article class="card">
+            <h2>Glued names</h2>
+            <div class="chips"><span class="chip chip--warn chip--mono">KamilLisek</span><span class="chip chip--warn chip--mono">CarolineDive</span></div>
+          </article>
+          <article class="card">
+            <h2>Altered letters</h2>
+            <div class="chips"><span class="chip chip--warn chip--mono">Sfllomos</span><span class="chip chip--warn chip--mono">HUGS</span><span class="chip chip--warn chip--mono">&lambda;3-integrin</span></div>
+            <p class="note">The page says Sflomos, HUG and &beta;3-integrin.</p>
+          </article>
+          <article class="card">
+            <h2>Category guessed</h2>
+            <p>Taken from how the title sounds instead of the role label printed next to it.</p>
+          </article>
+        </div>
+      </div>
+      <div class="takeaway">
+        <p>Mechanical errors, fixable in code first: <strong>split names, require every value to appear in the source</strong>.</p>
+        <p class="note">The judge needs checking too: a second run of the same judge built a different reference (41 talks instead of 38, precision 0.974). Next: an ensemble of smaller judges with majority or average voting (JudgeBlender, Rahmani et al. 2025) plus a human spot check.</p>
+      </div>
+    </section>
+
+    <section class="slide slide--wide" id="step-3-topics" aria-labelledby="topics-title">
+      <div>
+        <span class="accent-rule" aria-hidden="true"></span>
+        <p class="eyebrow"><strong>Step 3</strong> &middot; Topics from the abstracts</p>
+        <h1 id="topics-title"><span>Topics need</span> <span>text to read.</span></h1>
+        <p class="lead">A script follows the extracted URLs, crawls the abstracts and asks the same small model (thinking off) for a <code>topics</code> list. A bigger model would do better; the small one saves tokens.</p>
+      </div>
+      <div class="grid grid--2">
+        <figure class="chart">
+          <figcaption>Records with a value, per field <small>38 records</small></figcaption>
+          <ul class="bars bars--compact" aria-label="Records with a value per field, out of 38">
+            <li class="bar" tabindex="0" style="--value: 1" data-tip="title: 38 of 38"><span class="bar-label">title</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value">38 of 38</span></span></li>
+            <li class="bar" tabindex="0" style="--value: 1" data-tip="author: 38 of 38"><span class="bar-label">author</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value">38 of 38</span></span></li>
+            <li class="bar" tabindex="0" style="--value: 1" data-tip="category: 38 of 38"><span class="bar-label">category</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value">38 of 38</span></span></li>
+            <li class="bar" tabindex="0" style="--value: .895" data-tip="affiliation: 34 of 38"><span class="bar-label">affiliation</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value">34 of 38</span></span></li>
+            <li class="bar" tabindex="0" style="--value: .868" data-tip="country: 33 of 38"><span class="bar-label">country</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value">33 of 38</span></span></li>
+            <li class="bar" tabindex="0" style="--value: .184" data-tip="paper_id: 7 of 38, only proffered papers have an ID"><span class="bar-label">paper_id</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value">7 of 38</span></span></li>
+            <li class="bar" tabindex="0" style="--value: .184" data-tip="abstract_url: 7 of 38, one per paper ID"><span class="bar-label">abstract_url</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value">7 of 38</span></span></li>
+            <li class="bar" tabindex="0" style="--value: .184" data-tip="topics: 7 of 38, one list per crawled abstract"><span class="bar-label">topics</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value">7 of 38</span></span></li>
+            <li class="bar" tabindex="0" style="--value: 0" data-tip="extra_url: 0 of 38, the programme page has no PDF links"><span class="bar-label">extra_url</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value">0 of 38</span></span></li>
+          </ul>
+          <div class="bars-axis" aria-hidden="true"><span></span><span>records, scale 0 to 38</span></div>
+        </figure>
+        <div class="stack">
+          <article class="card">
+            <h2>Topics for EACR26-1448</h2>
+            <div class="chips"><span class="chip">stromal beta3-integrin</span><span class="chip">breast cancer recurrence</span><span class="chip">tumour microenvironment</span><span class="chip">spatial transcriptomics</span><span class="chip chip--warn">oncodetype dx low-risk</span></div>
+          </article>
+          <article class="card">
+            <h2>Close, but bent</h2>
+            <div class="chips"><span class="chip chip--warn">transform growth beta signaling pathway</span><span class="chip chip--warn">unfolding protein response</span></div>
+            <p class="note">Meant: Oncotype DX, transforming growth factor beta, unfolded protein response.</p>
+          </article>
+        </div>
+      </div>
+      <div class="takeaway">
+        <p>Only <strong>7 of 38 talks</strong> link to an abstract, so 31 have no topics. Richer content needs a second source.</p>
+      </div>
+    </section>
+
+    <section class="slide slide--wide" id="step-4-explore" aria-labelledby="explore-title">
+      <div>
+        <span class="accent-rule" aria-hidden="true"></span>
+        <p class="eyebrow"><strong>Step 4</strong> &middot; Explore before you trust</p>
+        <h1 id="explore-title"><span>Clusters find talk formats</span> <span>before subjects.</span></h1>
+      </div>
+      <div class="grid grid--wide-left">
+        <figure class="chart">
+          <figcaption>Title clusters <small>38 titles, EmbeddingGemma-300M-medical, k-means k = 3, PCA</small></figcaption>
+          <ul class="legend" id="cluster-legend" aria-hidden="true"></ul>
+          <svg class="scatter" id="scatter" viewBox="0 0 640 290" role="img" aria-label="Scatter plot of 38 talk titles in three clusters"></svg>
+        </figure>
+        <figure class="chart">
+          <figcaption>Records sharing two topic words <small>7 records with topics</small></figcaption>
+          <div class="heat" id="heat" role="img" aria-label="Co-occurrence of the 8 topic words shared by two or more records"></div>
+        </figure>
+      </div>
+      <div class="takeaway">
+        <p>One cluster is <strong>closing remarks, awards and opening addresses</strong>. Silhouette is 0.061 at k = 3 (0.056 to 0.071 for k = 2 to 7), so structure is weak, as expected with 38 talks.</p>
+        <p class="note">Next: medical experts judge which topics and groups make sense and fix the vocabulary. Their decisions become the ground truth.</p>
+      </div>
+    </section>
+
+    <section class="slide slide--wide" id="step-5-questions" aria-labelledby="questions-title">
+      <div>
+        <span class="accent-rule" aria-hidden="true"></span>
+        <p class="eyebrow"><strong>Step 5</strong> &middot; Metrics as business questions</p>
+        <h1 id="questions-title"><span>Three questions</span> <span>instead of F1.</span></h1>
+      </div>
+      <div class="grid grid--3">
+        <div>
+          <p class="stat-question">Of what we publish, how much is real?</p>
+          <p class="stat-value">89.5%</p>
+          <p class="stat-caption">34 of 38 extracted records match a real talk.</p>
+        </div>
+        <div>
+          <p class="stat-question">How much did we miss?</p>
+          <p class="stat-value">4 talks</p>
+          <p class="stat-caption">Recall 89.5%: 34 of 38 expected talks found.</p>
+        </div>
+        <div>
+          <p class="stat-question">Does it make things up?</p>
+          <p class="stat-value">0</p>
+          <p class="stat-caption">Fabricated talks. Trust is the main reason to build the system.</p>
+        </div>
+      </div>
+      <div>
+        <p class="eyebrow">No need to choose between accuracy, cost and speed: a confidence score routes each record</p>
+        <div class="dial" role="list" aria-label="Routing by confidence">
+          <div role="listitem"><strong>High confidence</strong><span>Published</span></div>
+          <div role="listitem"><strong>Medium</strong><span>Sent to a reviewer</span></div>
+          <div role="listitem"><strong>Low</strong><span>Held back</span></div>
+        </div>
+      </div>
+      <div class="takeaway">
+        <p>Where the thresholds sit is <strong>tuned together with the business</strong>.</p>
+      </div>
+    </section>
+
+    <section class="slide slide--wide" id="step-5-cost" aria-labelledby="cost-title">
+      <div>
+        <span class="accent-rule" aria-hidden="true"></span>
+        <p class="eyebrow"><strong>Step 5</strong> &middot; Cost now, cheaper later</p>
+        <h1 id="cost-title"><span>Pay for accuracy</span> <span>until the vocabulary settles.</span></h1>
+      </div>
+      <div class="grid grid--2">
+        <div class="stack">
+          <article class="card"><h2>Measure first</h2><p>Cost and turnaround were not measured in the PoC. Log tokens and time per record with LiteLLM or Codeburn.</p></article>
+          <article class="card"><h2>Larger models for now</h2><p>Until the folksonomy is stable, tracked by the velocity of novel topics. Today every topic string is unique.</p></article>
+          <article class="card"><h2>Cheap classifiers later</h2><p>Train on the learned topics: XGBoost as a baseline, JEV worth testing.</p></article>
+          <article class="card"><h2>Dominance as a signal</h2><p>The UK has 8 of 38 talks. If that holds across conferences and correlates with engagement, it can boost or damp content.</p></article>
+        </div>
+        <div class="stack">
+          <figure class="chart">
+            <figcaption>Talks per country <small>38 talks</small></figcaption>
+            <ul class="bars bars--compact" id="countries" aria-label="Talks per country"></ul>
+            <div class="bars-axis" aria-hidden="true"><span></span><span>talks, scale 0 to 8</span></div>
+          </figure>
+          <figure class="chart">
+            <figcaption>Unique vs total values</figcaption>
+            <ul class="bars bars--compact" aria-label="Unique vs total values">
+              <li class="bar" tabindex="0" style="--value: 1" data-tip="38 unique authors in 38 talks"><span class="bar-label">authors</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value">38 unique of 38</span></span></li>
+              <li class="bar" tabindex="0" style="--value: 1" data-tip="44 unique topic strings out of 44: no topic repeats yet"><span class="bar-label">topic strings</span><span class="bar-track"><span class="bar-fill"></span><span class="bar-value">44 unique of 44</span></span></li>
+            </ul>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide slide--wide" id="step-6-pipeline" aria-labelledby="pipeline-title">
+      <div>
+        <span class="accent-rule" aria-hidden="true"></span>
+        <p class="eyebrow"><strong>Step 6</strong> &middot; From PoC to production</p>
+        <h1 id="pipeline-title"><span>Same steps,</span> <span>now as a pipeline.</span></h1>
+        <p class="lead">Steps 1 to 4 stay. Each reads from and writes to a shared store, so each can scale or re-run on its own, e.g. as Kubernetes pods.</p>
+      </div>
+      <div class="flow" style="--steps: 5" role="list" aria-label="Production pipeline">
+        <article class="card" role="listitem"><h2>Source registry</h2><p>Conferences, institutions, KOLs with URL, type and crawl schedule</p><p>Postgres, replaces source.csv</p></article>
+        <article class="card" role="listitem"><h2>Scheduler</h2><p>One job per due URL on a queue, manual triggers</p><p>FastAPI, Celery</p></article>
+        <article class="card" role="listitem"><h2>Crawler workers</h2><p>Retries, rate limit per domain. Failing URLs go to a person</p><p>Slackbot alert</p></article>
+        <article class="card" role="listitem"><h2>Inference workers</h2><p>Extraction and topics, plus specialty, sub-specialty, drugs, KOL affiliation</p><p>Steps 1 and 3</p></article>
+        <article class="card" role="listitem"><h2>Store</h2><p>Content and metadata, duplicates found with (approximate) kNN</p><p>Elasticsearch</p></article>
+      </div>
+      <div class="takeaway">
+        <p>Pipeline config lives in Postgres, so <strong>a change is a row update instead of a redeploy</strong>.</p>
+      </div>
+    </section>
+
+    <section class="slide slide--wide" id="step-6-taxonomy" aria-labelledby="taxonomy-title">
+      <div>
+        <span class="accent-rule" aria-hidden="true"></span>
+        <p class="eyebrow"><strong>Step 6</strong> &middot; From folksonomy to taxonomy</p>
+        <h1 id="taxonomy-title"><span>New content gets tags</span> <span>from similar old content.</span></h1>
+        <p class="lead">Extracted topics are checked against a fixed taxonomy. Two ways to assign tags at scale:</p>
+      </div>
+      <div class="grid grid--2">
+        <article class="card">
+          <h2>Trained classifier</h2>
+          <p>XGBoost on the learned topics, once the folksonomy is stable (Step 5).</p>
+        </article>
+        <article class="card">
+          <h2>kNN tag recommendation</h2>
+          <p>Find similar, already reviewed content in Elasticsearch and reuse its topics.</p>
+          <p class="note">To test: bag of words, dense embeddings, sparse embeddings.</p>
+        </article>
+      </div>
+      <div class="takeaway">
+        <p>The human loop stays: <strong>low-confidence records, failing URLs and new topics go to experts</strong>, and their decisions feed the ground truth from Steps 1 and 4.</p>
+      </div>
+    </section>
+
+    <section class="slide slide--wide" id="back-to-task" aria-labelledby="back-title">
+      <div>
+        <span class="accent-rule" aria-hidden="true"></span>
+        <p class="eyebrow">Back to the task</p>
+        <h1 id="back-title"><span>Small, checked,</span> <span>then scaled.</span></h1>
+      </div>
+      <div class="grid grid--3">
+        <article class="card">
+          <h2>Technical architecture</h2>
+          <p>From one script to a queue of workers over a shared store, with experts in the loop.</p>
+          <span class="step-ref">Steps 1, 3 and 6</span>
+        </article>
+        <article class="card">
+          <h2>Evaluation and monitoring</h2>
+          <p>Judge metrics per talk and field, expert review of topics, a growing ground truth.</p>
+          <span class="step-ref">Steps 2 and 4</span>
+        </article>
+        <article class="card">
+          <h2>Business communication</h2>
+          <p>Three plain questions, one confidence dial, a plan to cut cost once the vocabulary settles.</p>
+          <span class="step-ref">Step 5</span>
+        </article>
+      </div>
+      <div>
+        <p class="eyebrow">Monitored over time on a sampled audit set</p>
+        <div class="monitor">
+          <div>Precision and recall<small>per talk and per field</small></div>
+          <div>Hallucination rate<small>values not found in the source</small></div>
+          <div>Taxonomy coverage<small>share of records with a valid label</small><span class="formula"><i>C</i> = <i>N</i><sub>labelled</sub> / <i>N</i></span><small>Today: no taxonomy yet, topics on 7 of 38</small></div>
+          <div>Novel-topic velocity<small>new topics per batch <i>t</i></small><span class="formula"><i>v</i><sub><i>t</i></sub> = |<i>T</i><sub><i>t</i></sub> &setminus; <i>T</i><sub>&lt;<i>t</i></sub>| / |<i>T</i><sub><i>t</i></sub>|</span><small>Today: 44 / 44 = 1.0. Settled when <i>v</i><sub><i>t</i></sub> &lt; &theta; for <i>k</i> batches</small></div>
+          <div>Cost and turnaround<small>tokens and time per record</small><span class="formula"><i>c</i> = &Sigma;<sub><i>i</i></sub> tokens<sub><i>i</i></sub> &middot; price / <i>N</i></span><small>Latency as p50 and p95. Not measured yet</small></div>
+        </div>
+      </div>
+      <div class="takeaway">
+        <p>Every rate comes with a <strong>95% Wilson interval</strong>: talk precision today is 34 of 38 = 0.895, CI [0.759, 0.958].</p>
+        <p class="note">An alert fires when a rate falls below the lower bound of its baseline interval. The width also shows how little 38 talks can prove.</p>
+      </div>
+    </section>
+
+    <footer class="deck-footer">
+      <div class="slide-position" aria-label="Slide position">
+        <span class="position-bars" aria-hidden="true"></span>
+        <span id="slide-count"></span>
+      </div>
+      <nav class="slide-nav" aria-label="Presentation slides">
+        <button id="previous" type="button" aria-label="Previous slide">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m7 7-7-7 7-7"/></svg>
+        </button>
+        <button id="next" type="button" aria-label="Next slide">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+        </button>
+      </nav>
+    </footer>
+  </main>
+
+  <div class="tip" id="tip" role="tooltip" hidden></div>
+
+  <script>
+    // Data from step2/eval.jsonl, data/topics/eacr-2026.jsonl and the step4 notebook
+    // (same model, prefix, k-means seed and PCA)
+    const VERDICTS = {
+      title: [28, 0, 6, 0], paper_id: [7, 27, 0, 0], author: [24, 0, 10, 0], affiliation: [25, 0, 5, 4],
+      country: [29, 1, 0, 4], abstract_url: [7, 27, 0, 0], extra_url: [0, 34, 0, 0], category: [28, 0, 6, 0],
+    };
+    const VERDICT_KINDS = [['correct', 'correct'], ['null', 'correctly empty'], ['incorrect', 'incorrect'], ['missing', 'missing']];
+
+    const COUNTRIES = [
+      ['United Kingdom', 8], ['Israel', 5], ['United States', 5], ['Hungary', 3], ['Spain', 3], ['Switzerland', 2],
+      ['Italy', 2], ['Sweden', 1], ['Netherlands', 1], ['Portugal', 1], ['Belgium', 1], ['Poland', 1], ['Unknown', 5],
+    ];
+
+    const WORDS = ['cancer', 'breast', 'microenvironment', 'transcriptomics', 'tumor', 'protein', 'resistance', 'spatial'];
+    const COOCCURRENCE = [
+      [5, 3, 3, 3, 3, 1, 1, 2], [3, 3, 3, 2, 2, 0, 0, 1], [3, 3, 3, 2, 2, 0, 0, 1], [3, 2, 2, 3, 3, 0, 0, 2],
+      [3, 2, 2, 3, 3, 0, 0, 2], [1, 0, 0, 0, 0, 2, 1, 0], [1, 0, 0, 0, 0, 1, 2, 0], [2, 1, 1, 2, 2, 0, 0, 2],
+    ];
+
+    const CLUSTERS = [
+      { color: 'var(--c1)', shape: 'circle', terms: 'research, cancer, biology' },
+      { color: 'var(--c2)', shape: 'square', terms: 'cancer, cell, microenvironment' },
+      { color: 'var(--c3)', shape: 'triangle', terms: 'conclusions, award, address' },
+    ];
+    const POINTS = [
+      [-0.062, -0.071, 0, 'Preclinical Modeling of Breast Cancer in Context and the Lobular Paradigm'],
+      [0.406, 0.089, 1, 'Stromal β3-integrin signature predicting recurrence in Oncotype DX low-risk breast cancer'],
+      [0.36, -0.011, 1, 'Spatial trajectories of TNBC tumorigenesis reveal orchestrated TME niches in time and space'],
+      [0.066, -0.178, 1, 'Targeting the untargetable: KRAS, microenvironment and beyond in Pancreatic Cancer'],
+      [0.2, -0.215, 1, 'Epigenetic Mechanisms Driving Therapy Resistance in Cancer'],
+      [0.092, -0.113, 1, 'Expanding CAR T cell therapy to solid tumors'],
+      [-0.306, 0.731, 2, 'Conclusions'],
+      [0.339, -0.106, 1, 'Immune-controlled signaling niches drive tissue physiology and cancer'],
+      [0.201, -0.021, 1, 'Proffered Paper 8: Intestinal zonation constrains driver mutation selection and shapes tumour evolution in colorectal cancer'],
+      [-0.311, -0.208, 0, 'The LEAD/DEAL tandem in the cancer research career path'],
+      [-0.482, -0.459, 0, 'Expanding the Resolution and Scope of Multi-modal Cancer Research with Innovative Solutions'],
+      [-0.046, -0.106, 1, 'The power of OvaPrint and novel multi-modal methods for the detection of ovarian cancer'],
+      [-0.375, 0.674, 2, 'Introductory words and workshop overview'],
+      [-0.309, -0.456, 0, 'Resolving Cancer Across Its Biological Layers with Single-Cell and Spatial Biology'],
+      [0.249, -0.081, 1, 'Molecular and Spatial Determinants of Metastatic Cell State Acquisition in Colorectal Cancer'],
+      [-0.186, -0.263, 1, 'Illumina/SomaLogic Mega Symposium: Multi-resolution and Multiomic Approaches to Decipher the Tumor Ecosystem (part 2)'],
+      [0.021, -0.262, 1, 'Plasma Proteomics and AI: Redefining Precision Oncology'],
+      [-0.163, 0.083, 2, 'Making Sense of Multiomics Data: Technical Considerations for Integrated Analysis and Visualisation'],
+      [0.44, 0.232, 1, 'Decoding the Dark Immunopeptidome: The Role of Translational Aberrations in Immune Surveillance'],
+      [-0.105, -0.205, 0, 'From Dark to Detectable - The Cancer Proteogenomics'],
+      [0.167, -0.179, 1, 'A functional map of the cancer dark proteome'],
+      [-0.569, 0.117, 0, 'Introduction of the Mark Foundation for Cancer Research'],
+      [-0.326, 0.38, 2, '2026 EACR - Mark Foundation - Pezcoller Foundation Rising Star Award Lecture'],
+      [0.164, -0.072, 1, 'A role for mitochondrial one carbon metabolism in early pancreatic cancer development'],
+      [0.602, 0.173, 1, 'Dissecting tissue-resident and circulating trajectories to CD8 T cell dysfunction in the tumor microenvironment'],
+      [0.494, 0.098, 1, 'Unlocking CD8+ T cell anti-tumor activity in brain metastasis'],
+      [0.277, -0.079, 1, 'Integration of stress response biology multi-omic datasets decodes prostate cancer dynamic disease progression'],
+      [0.51, 0.125, 1, 'Temporal progression of the liver immune microenvironment during breast cancer metastasis'],
+      [0.07, -0.295, 1, 'Simple cell geometry metrics reveal cancer cell diversity and plasticity and guide combination therapy'],
+      [0.281, -0.098, 1, 'Protective PROTACs exploit cancer-specific E3 ligase defects to increase the therapeutic window of anticancer drugs'],
+      [-0.229, 0.709, 2, 'Opening Address'],
+      [-0.424, -0.08, 0, 'Patient involvement in cancer research'],
+      [-0.147, 0.176, 0, 'Opening Keynote Lecture: A Tale of 3 Biomarkers - diagnosis, prognosis and therapy scheduling'],
+      [-0.306, 0.62, 2, 'Pezcoller Award Presentation and Introduction of the Award Recipients'],
+      [0.063, 0.007, 1, 'Unravelling the Mysteries of Kidney Cancer - A Journey from Genetics to Immunology'],
+      [0.224, 0.197, 1, 'Reactivation of a Fetal Liver Metabolic Program Promotes Extrahepatic Tumorigenesis'],
+      [-0.375, -0.503, 0, 'Accelerating cancer research with CancerTools: Unlocking discovery with advanced models'],
+      [-0.508, -0.348, 0, 'Revealing a Deeper View of Cancer with 5D Biology'],
+    ];
+
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+
+    function el(tag, attrs = {}, text = '') {
+      const node = tag === 'svg' || ['circle', 'rect', 'path', 'line', 'text'].includes(tag)
+        ? document.createElementNS(SVG_NS, tag)
+        : document.createElement(tag);
+      Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, value));
+      if (text) node.textContent = text;
+      return node;
+    }
+
+    function marker(shape, x, y, size = 6) {
+      if (shape === 'circle') return el('circle', { cx: x, cy: y, r: size });
+      if (shape === 'square') return el('rect', { x: x - size + 1, y: y - size + 1, width: 2 * size - 2, height: 2 * size - 2 });
+      return el('path', { d: `M${x} ${y - size - 1}L${x + size + 1} ${y + size}H${x - size - 1}Z` });
+    }
+
+    function renderVerdicts() {
+      const list = document.getElementById('verdicts');
+      Object.entries(VERDICTS).forEach(([field, counts]) => {
+        const track = el('span', { class: 'stacked' });
+        counts.forEach((n, i) => {
+          if (!n) return;
+          const [kind, label] = VERDICT_KINDS[i];
+          track.append(el('span', { class: `seg seg--${kind}`, style: `--n: ${n}`, tabindex: 0, 'data-tip': `${field}: ${n} ${label}` }, String(n)));
+        });
+        const row = el('li', { class: 'bar' });
+        row.append(el('span', { class: 'bar-label' }, field), track);
+        list.append(row);
+      });
+    }
+
+    function renderCountries() {
+      const max = Math.max(...COUNTRIES.map(([, n]) => n));
+      const total = COUNTRIES.reduce((sum, [, n]) => sum + n, 0);
+      document.getElementById('countries').append(...COUNTRIES.map(([country, n]) => {
+        const share = Math.round((n / total) * 100);
+        const row = el('li', {
+          class: country === 'Unknown' ? 'bar bar--muted' : 'bar',
+          style: `--value: ${n / max}`,
+          tabindex: 0,
+          'data-tip': `${country}: ${n} of ${total} talks (${share}%)`,
+        });
+        const track = el('span', { class: 'bar-track' });
+        const value = el('span', { class: 'bar-value' }, `${n} `);
+        value.append(el('small', {}, `${share}%`));
+        track.append(el('span', { class: 'bar-fill' }), value);
+        row.append(el('span', { class: 'bar-label' }, country), track);
+        return row;
+      }));
+    }
+
+    function renderHeatmap() {
+      const heat = document.getElementById('heat');
+      const max = Math.max(...COOCCURRENCE.flat());
+      WORDS.forEach((rowWord, r) => {
+        heat.append(el('span', { class: 'heat-label' }, rowWord));
+        WORDS.forEach((colWord, c) => {
+          if (c > r) return heat.append(el('span'));
+          const n = COOCCURRENCE[r][c];
+          const tip = r === c ? `${rowWord}: in ${n} of 7 records` : `${rowWord} + ${colWord}: together in ${n} of 7 records`;
+          heat.append(el('span', {
+            class: n / max > .5 ? 'heat-cell is-dark' : 'heat-cell',
+            style: `--v: ${n / max}`,
+            tabindex: 0,
+            'data-tip': tip,
+          }, n ? String(n) : ''));
+        });
+      });
+      heat.append(el('span'), ...WORDS.map((word) => el('span', { class: 'heat-col' }, word)));
+    }
+
+    function renderScatter() {
+      const svg = document.getElementById('scatter');
+      const [width, height, pad] = [640, 290, 18];
+      const xs = POINTS.map((p) => p[0]);
+      const ys = POINTS.map((p) => p[1]);
+      const scale = (v, min, max, size) => pad + ((v - min) / (max - min)) * (size - 2 * pad - 20);
+      const sx = (x) => 20 + scale(x, Math.min(...xs), Math.max(...xs), width);
+      const sy = (y) => height - 20 - scale(y, Math.min(...ys), Math.max(...ys), height);
+
+      svg.append(
+        el('line', { class: 'axis', x1: 20, y1: height - 20, x2: width, y2: height - 20 }),
+        el('line', { class: 'axis', x1: 20, y1: 0, x2: 20, y2: height - 20 }),
+        el('text', { class: 'axis-label', x: width / 2, y: height - 4, 'text-anchor': 'middle' }, 'PCA 1'),
+        el('text', { class: 'axis-label', x: 12, y: height / 2, transform: `rotate(-90 12 ${height / 2})`, 'text-anchor': 'middle' }, 'PCA 2'),
+      );
+      POINTS.forEach(([x, y, c, title]) => {
+        const point = marker(CLUSTERS[c].shape, sx(x), sy(y));
+        point.setAttribute('fill', CLUSTERS[c].color);
+        point.setAttribute('tabindex', 0);
+        point.setAttribute('data-tip', `Cluster ${c + 1}: ${title}`);
+        svg.append(point);
+      });
+
+      document.getElementById('cluster-legend').append(...CLUSTERS.map((cluster, c) => {
+        const n = POINTS.filter((p) => p[2] === c).length;
+        const icon = el('svg', { viewBox: '-7 -7 14 14' });
+        const shape = marker(cluster.shape, 0, 0, 5);
+        shape.setAttribute('fill', cluster.color);
+        icon.append(shape);
+        const item = el('li');
+        item.append(icon, `${c + 1}: ${cluster.terms} (n = ${n})`);
+        return item;
+      }));
+    }
+
+    function setupTooltip() {
+      const tip = document.getElementById('tip');
+      const show = (target, x, y) => {
+        tip.textContent = target.getAttribute('data-tip');
+        tip.hidden = false;
+        const { width, height } = tip.getBoundingClientRect();
+        tip.style.left = `${Math.min(x + 14, innerWidth - width - 8)}px`;
+        tip.style.top = `${y + height + 22 > innerHeight ? y - height - 12 : y + 16}px`;
+      };
+      document.addEventListener('pointermove', (event) => {
+        const target = event.target.closest?.('[data-tip]');
+        if (target) show(target, event.clientX, event.clientY);
+        else tip.hidden = true;
+      });
+      document.addEventListener('focusin', (event) => {
+        const target = event.target.closest?.('[data-tip]');
+        if (!target) return void (tip.hidden = true);
+        const rect = target.getBoundingClientRect();
+        show(target, rect.left, rect.bottom);
+      });
+      document.addEventListener('focusout', () => { tip.hidden = true; });
+    }
+
+    renderVerdicts();
+    renderCountries();
+    renderHeatmap();
+    renderScatter();
+    setupTooltip();
+
+    const slides = [...document.querySelectorAll('.slide')];
+    const previous = document.getElementById('previous');
+    const next = document.getElementById('next');
+    const slideCount = document.getElementById('slide-count');
+    const positionBars = slides.map(() => document.createElement('span'));
+    document.querySelector('.position-bars').append(...positionBars);
+    const pad = (n) => String(n).padStart(2, '0');
+    let activeIndex = -1;
+
+    function showSlide(index, updateHash = true) {
+      if (index < 0 || index >= slides.length || index === activeIndex) return;
+
+      slides.forEach((slide, slideIndex) => {
+        const active = slideIndex === index;
+        slide.classList.toggle('is-active', active);
+        slide.setAttribute('aria-hidden', String(!active));
+        slide.inert = !active;
+      });
+
+      activeIndex = index;
+      previous.disabled = index === 0;
+      next.disabled = index === slides.length - 1;
+      slideCount.textContent = `${pad(index + 1)} / ${pad(slides.length)}`;
+      positionBars.forEach((bar, barIndex) => bar.classList.toggle('is-active', barIndex === index));
+      document.getElementById('tip').hidden = true;
+
+      if (updateHash) {
+        try { history.replaceState(null, '', `#${slides[index].id}`); }
+        catch { location.hash = slides[index].id; }
+      }
+    }
+
+    previous.addEventListener('click', () => showSlide(activeIndex - 1));
+    next.addEventListener('click', () => showSlide(activeIndex + 1));
+
+    window.addEventListener('keydown', (event) => {
+      if (['ArrowRight', 'PageDown'].includes(event.key) || (event.key === ' ' && event.target.tagName !== 'BUTTON')) {
+        event.preventDefault();
+        showSlide(activeIndex + 1);
+      } else if (['ArrowLeft', 'PageUp'].includes(event.key)) {
+        event.preventDefault();
+        showSlide(activeIndex - 1);
+      }
+    });
+
+    window.addEventListener('hashchange', () => {
+      const index = slides.findIndex((slide) => `#${slide.id}` === location.hash);
+      if (index !== -1) showSlide(index, false);
+    });
+
+    const initialIndex = slides.findIndex((slide) => `#${slide.id}` === location.hash);
+    showSlide(initialIndex === -1 ? 0 : initialIndex, false);
+  </script>
+</body>
+</html>
